@@ -5,7 +5,7 @@ from abc import abstractmethod
 import torch
 import numpy as np
 
-from transformer_utils.cache import GPTTopKCache, GPTSeqCache
+from code_ai_tree_search.transformer_utils.cache import GPTTopKCache, GPTSeqCache
 
 
 class DefaultPolicyHeuristic:

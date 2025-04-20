@@ -12,7 +12,7 @@ import numpy as np
 sys.path.append('../')
 sys.path.append('../eval/')
 
-from program_env import APPSProgramEnv
+from code_ai_tree_search.generate.program_env import APPSProgramEnv
 
 # okay with parallelization
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

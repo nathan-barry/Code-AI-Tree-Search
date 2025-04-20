@@ -3,10 +3,10 @@ import traceback
 
 from scipy.stats import entropy
 
-from default_pi import DefaultPolicyHeuristic
-from dyna_gym.agents.mcts import plot_tree, update_root, DecisionNode, pre_order_traverse
-from dyna_gym.agents.uct import UCT
-from eval.utils import log_error
+from code_ai_tree_search.generate.default_pi import DefaultPolicyHeuristic
+from code_ai_tree_search.dyna_gym.agents.mcts import plot_tree, update_root, DecisionNode, pre_order_traverse
+from code_ai_tree_search.dyna_gym.agents.uct import UCT
+from code_ai_tree_search.eval.utils import log_error
 
 
 def uct_exp(args, env, dp, log_loc, start):

@@ -8,13 +8,10 @@ import torch
 import transformers
 import numpy as np
 from tqdm import tqdm
+import argparse
 
-sys.path.append('../')
-sys.path.append('../eval/')
-
-from default_pi import APPSHeuristic
-
-from transformer_utils.utils import get_model_by_name
+from code_ai_tree_search.generate.default_pi import APPSHeuristic
+from code_ai_tree_search.transformer_utils.utils import get_model_by_name
 
 # okay with parallelization
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -58,7 +55,14 @@ def main():
     torch.cuda.manual_seed(args.seed)
 
     print(f"Loading model {args.load}")
-    model, tokenizer = get_model_by_name(args.load, args.device)
+    # — use HuggingFace hub instead of a local folder —
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+  
+    print(f"Loading tokenizer from HuggingFace: {args.load}")
+    tokenizer = AutoTokenizer.from_pretrained(args.load, use_fast=True)
+
+    print(f"Loading model from HuggingFace: {args.load}")
+    model = AutoModelForCausalLM.from_pretrained(args.load, device_map="auto")
     print("Model loaded/initialized.")
 
     if args.load_value is not None:
@@ -74,10 +78,16 @@ def main():
     # pre-processing dataset
     if args.dataset == 'apps':
         # get problem locations
-        with open(args.test_loc, "r") as f:
-            problems = json.load(f)
-        # get a list of program file paths
-        problems = [problems[idx] for idx in problem_indices]
+        split_path = args.test_loc                       # e.g. "./data_split/test.json"
+        base_dir   = os.path.dirname(os.path.abspath(split_path))
+        with open(split_path) as f:
+            rel_paths = json.load(f)
+
+        # turn each entry into a full path
+        problems = [
+            os.path.normpath(os.path.join(base_dir, rel))
+            for rel in rel_paths
+        ]
     else:
         raise Exception(f"Unknown dataset {args.dataset}")
 
@@ -97,7 +107,7 @@ def main():
         print(f"Solving Problem #{i}")
 
         if args.dataset == 'apps':
-            from program_env import APPSProgramEnv
+            from code_ai_tree_search.generate.program_env import APPSProgramEnv
             env = APPSProgramEnv(
                 prob_path=prob_instance,
                 tokenizer=tokenizer,
@@ -129,24 +139,31 @@ def main():
 
         start = time.time()
 
-        if args.peek:
-            # for sanity check, use the ground truth solution
-            states = [env.get_canonical_state()]
-            info = {'sample_times': 0}
-        else:
-            # run code generation
-            if args.alg == 'mcts':
-                from uct import uct_exp
-                states, info = uct_exp(args, env, dp, log_loc, start)
-            elif args.alg == 'mcts-multi':
-                from uct import uct_multistep_exp
-                states, info = uct_multistep_exp(args, env, dp, log_loc, start)
-            elif args.alg == 'bs':
-                states, info = bs_exp(args, env, dp)
-            elif args.alg == 'sample':
-                states, info = sample_exp(args, env, dp)
+
+        try:
+            if args.peek:
+                # for sanity check, use the ground truth solution
+                states = [env.get_canonical_state()]
+                info = {'sample_times': 0}
             else:
-                raise Exception(f"Unknown alg {args.alg}.")
+                # run code generation
+                if args.alg == 'mcts':
+                    from uct import uct_exp
+                    states, info = uct_exp(args, env, dp, log_loc, start)
+                elif args.alg == 'mcts-multi':
+                    from uct import uct_multistep_exp
+                    states, info = uct_multistep_exp(args, env, dp, log_loc, start)
+                elif args.alg == 'bs':
+                    states, info = bs_exp(args, env, dp)
+                elif args.alg == 'sample':
+                    states, info = sample_exp(args, env, dp)
+                else:
+                    raise Exception(f"Unknown alg {args.alg}.")
+        except Exception as e:
+            print(f"Problem {i} failed with exception {e}")
+            with open(log_loc, "w") as f:
+                f.write(str(e))
+            continue
 
         if states is None or len(states) == 0:
             continue
@@ -177,15 +194,11 @@ def main():
 
 
 if __name__ == '__main__':
-    import argparse
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("--arch", default="gpt2", choices=[
-        "gpt2", "gpt2-medium", "gpt2-large", "gpt2-xl"
-    ])
-    parser.add_argument("-l", "--load", default="../models/1.5B", type=str)
+    parser.add_argument("--arch", default="gpt2")
+    parser.add_argument("-l", "--load", default="gpt2-xl", type=str)
     parser.add_argument("--load-value", default=None, type=str, help="An optional value function for evaluating partial programs.")
-    parser.add_argument("-t","--test-loc", default="../data_split/test.json", type=str, help="This file specifies the locations of the test set of the code dataset.")
+    parser.add_argument("-t","--test-loc", default="./data/APPS_data_split/test.json", type=str, help="This file specifies the locations of the test set of the code dataset.")
     parser.add_argument("--width", default=3, type=int, help="The maximum number of children for any node.")
     parser.add_argument("--horizon", default=1024, type=int, help="The maximum number of tokens to generate.")
     parser.add_argument("--new-token-num", default=None, type=int, help="The number of new tokens to generate before calling the value function."
@@ -250,8 +263,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    args.device = torch.device('cuda') if torch.cuda.is_available() and not args.no_cuda\
-                  else torch.device('cpu')
+    if not args.no_cuda and torch.cuda.is_available():
+        device_name = 'cuda'
+    elif getattr(torch.backends, 'mps', None) and torch.backends.mps.is_available():
+        device_name = 'mps'
+    else:
+        device_name = 'cpu'
+    args.device = torch.device(device_name)
+    print(f"Using device: {device_name}")
 
     if args.alg == 'sample':
         args.ts_mode = 'sample'

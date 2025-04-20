@@ -6,8 +6,8 @@ from abc import abstractmethod, ABC
 from collections import OrderedDict
 from types import SimpleNamespace
 
-from eval.compute_reward import compute_reward
-from eval.generate_gpt_codes import get_output_str_from_state_for_apps
+from code_ai_tree_search.eval.compute_reward import compute_reward
+from code_ai_tree_search.eval.generate_gpt_codes import get_output_str_from_state_for_apps
 
 
 class ProgramEnv(ABC):
@@ -102,7 +102,7 @@ class APPSProgramEnv(ProgramEnv):
         if public_test_cases == 'desc' and not os.path.exists(public_test_case_path):
             raise Exception('using public test cases in problem description, but public test cases missing.')
 
-        from eval.generate_gpt_codes import generate_apps_prompt
+        from code_ai_tree_search.eval.generate_gpt_codes import generate_apps_prompt
         # generate prompt to encode question text and an "ANSWER" prompt to the state
         # no need to load the full arglist here, it only needs to check the value of peeking (using default value 0.0 here)
         gpt_args = SimpleNamespace(peeking=0.0)

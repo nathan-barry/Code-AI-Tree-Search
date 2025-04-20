@@ -153,8 +153,8 @@ cython_debug/
 
 .DS_Store
 
-APPS/
-CodeContests/
+data/APPS/
+data/CodeContests/
 models/
 *results*/
 

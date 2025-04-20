@@ -1,6 +1,6 @@
 import multiprocessing
 
-import testing_util as test_util
+import code_ai_tree_search.eval.testing_util as test_util
 import numpy as np
 
 """

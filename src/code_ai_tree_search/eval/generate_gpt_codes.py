@@ -8,7 +8,7 @@ import random
 
 import os
 
-from reindent import run as run_reindent
+from code_ai_tree_search.eval.reindent import run as run_reindent
 
 # okay with parallelization
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -59,9 +59,10 @@ def generate_apps_prompt(args, test_case_path, prompt_path, solutions_path, toke
     with open(test_case_path, "r") as f:
         data = json.load(f)
     if not data.get("fn_name"):
-        _input += "\nUse Standard Input format"#\n"
+        _input += "\nUse Standard Input format."#\n"
     else:
-        _input += "\nUse Call-Based format"#\n"
+        _input += "\nUse Call-Based format."#\n"
+    _input += "\nYour answer should be exactly the python 3 code and nothing else.#\n"
 
     _input += "\nANSWER:\n"
 
@@ -96,9 +97,28 @@ def generate_apps_prompt(args, test_case_path, prompt_path, solutions_path, toke
 
 def get_output_str_from_state_for_apps(s):
     """
-    Get the code from the transformer output
+    Get the code from the transformer output.
+    Extracts the content inside triple backticks if present, without using regex.
     """
+    # If the model output includes "ANSWER:", strip everything before it
     if "ANSWER:" in s:
-        s = s.split("ANSWER:\n")[1]
+        s = s.split("ANSWER:\n", 1)[1]
 
-    return s.replace("<|endoftext|>", "")
+    # Remove the end-of-text sentinel
+    s = s.replace("<|endoftext|>", "")
+
+    # Look for the first opening triple backticks
+    start = s.find("```")
+    if start != -1:
+        # Find the end of the opening fence (skip any language tag)
+        newline_after_fence = s.find("\n", start + 3)
+        if newline_after_fence != -1:
+            # Look for the closing triple backticks after that
+            end = s.find("```", newline_after_fence + 1)
+            if end != -1:
+                # Extract the content between fences
+                code_block = s[newline_after_fence + 1 : end]
+                return code_block.strip()
+
+    # Fallback to returning the cleaned-up string
+    return s.strip()

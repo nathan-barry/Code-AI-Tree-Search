@@ -1,0 +1,22 @@
+[project]
+name = "code-ai-tree-search"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=1.6.0",
+    "gym>=0.26.2",
+    "numpy>=2.2.5",
+    "psutil>=7.0.0",
+    "pyext>=0.7",
+    "sacrebleu>=2.5.1",
+    "sacremoses>=0.1.1",
+    "scipy>=1.15.2",
+    "torch>=2.6.0",
+    "transformers>=4.51.3",
+]
+
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"

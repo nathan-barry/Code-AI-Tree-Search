@@ -29,7 +29,7 @@ from pyext import RuntimeModule
 
 from enum import Enum
 
-from test_case_split import get_test_cases
+from code_ai_tree_search.eval.test_case_split import get_test_cases
 
 
 class CODE_TYPE(Enum):
