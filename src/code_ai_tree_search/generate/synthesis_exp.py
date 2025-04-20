@@ -9,6 +9,7 @@ import transformers
 import numpy as np
 from tqdm import tqdm
 import argparse
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from code_ai_tree_search.generate.default_pi import APPSHeuristic
 from code_ai_tree_search.transformer_utils.utils import get_model_by_name
@@ -55,14 +56,7 @@ def main():
     torch.cuda.manual_seed(args.seed)
 
     print(f"Loading model {args.load}")
-    # — use HuggingFace hub instead of a local folder —
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-  
-    print(f"Loading tokenizer from HuggingFace: {args.load}")
-    tokenizer = AutoTokenizer.from_pretrained(args.load, use_fast=True)
-
-    print(f"Loading model from HuggingFace: {args.load}")
-    model = AutoModelForCausalLM.from_pretrained(args.load, device_map="auto")
+    model, tokenizer = get_model_by_name(args.load, args.device)
     print("Model loaded/initialized.")
 
     if args.load_value is not None:
@@ -196,7 +190,7 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", default="gpt2")
-    parser.add_argument("-l", "--load", default="gpt2-xl", type=str)
+    parser.add_argument("-l", "--load", default="./models/1.5B/", type=str)
     parser.add_argument("--load-value", default=None, type=str, help="An optional value function for evaluating partial programs.")
     parser.add_argument("-t","--test-loc", default="./data/APPS_data_split/test.json", type=str, help="This file specifies the locations of the test set of the code dataset.")
     parser.add_argument("--width", default=3, type=int, help="The maximum number of children for any node.")

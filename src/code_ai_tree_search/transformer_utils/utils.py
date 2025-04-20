@@ -4,7 +4,11 @@ import transformers
 def get_model_by_name(model_name, device):
     # ↓ load the tokenizer for *exactly* the same model you’re going to load
     print("Loading:", model_name, device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    try:
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    except:
+        # This should only happen if you are using the local fine-tuned weights
+        tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2-xl", use_fast=True)
 
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_name,
